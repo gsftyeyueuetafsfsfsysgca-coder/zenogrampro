@@ -1,0 +1,16 @@
+{
+  "name": "ZENOGRAM",
+  "short_name": "Zenogram",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#070d19",
+  "theme_color": "#0b132b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2111/2111646.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
