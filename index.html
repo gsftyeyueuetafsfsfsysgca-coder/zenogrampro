@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b132b">
+    <link rel="manifest" href="manifest.json">
+    <title>ZENOGRAM — Bionic 20 Winter Edition</title>
+    <style>
+        :root {
+            --bg-dark: #070d19;
+            --card-glass: rgba(20, 32, 58, 0.65);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --spring: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at top, #112240 0%, var(--bg-dark) 100%);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Qor yog'ish effekti */
+        #snow-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Asosiy ilova konteyneri */
+        .app-shell {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            background: rgba(11, 19, 43, 0.85);
+            backdrop-filter: blur(25px);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        /* Dynamic Island */
+        .island-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding-top: 10px;
+            z-index: 100;
+        }
+
+        .dynamic-island {
+            background: #000;
+            height: 30px;
+            min-width: 130px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 14px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.45s var(--spring);
+            cursor: pointer;
+        }
+
+        .dynamic-island.expanded {
+            min-width: 280px;
+            height: 44px;
+            border-radius: 24px;
+            background: #050a14;
+            border-color: var(--accent);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .dot-live {
+            width: 7px; height: 7px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #22c55e;
+        }
+
+        /* PIN-kod qulf ekrani */
+        #lock-screen {
+            position: absolute;
+            inset: 0;
+            background: rgba(7, 13, 25, 0.96);
+            backdrop-filter: blur(30px);
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.5s var(--spring), opacity 0.4s ease;
+        }
+
+        #lock-screen.unlocked {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .pin-dots {
+            display: flex;
+            gap: 16px;
+            margin: 24px 0 36px;
+        }
+
+        .pin-dot {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            transition: all 0.2s var(--spring);
+        }
+
+        .pin-dot.filled {
+            background: var(--accent);
+            transform: scale(1.2);
+            box-shadow: 0 0 12px var(--accent);
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 72px);
+            gap: 16px;
+        }
+
+        .key-btn {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: white;
+            font-size: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.15s var(--spring), background 0.15s;
+        }
+
+        .key-btn:active {
+            transform: scale(0.88);
+            background: rgba(56, 189, 248, 0.25);
+        }
+
+        /* Header */
+        .header {
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .profile-pill {
+            background: rgba(255,255,255,0.08);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-btn {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            border: none;
+            color: white;
+            padding: 7px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
+            transition: transform 0.2s var(--spring);
+        }
+
+        .ai-btn:active { transform: scale(0.92); }
+
+        .title-row {
+            padding: 4px 18px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-row h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+
+        .search-box {
+            margin: 0 18px 14px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 14px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        /* Chatlar ro'yxati */
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px 80px;
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s var(--spring);
+            margin-bottom: 4px;
+        }
+
+        .chat-item:active {
+            transform: scale(0.97);
+            background: rgba(255,255,255,0.08);
+        }
+
+        .avatar {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .online-badge {
+            position: absolute;
+            bottom: 2px; right: 2px;
+            width: 12px; height: 12px;
+            background: #22c55e;
+            border: 2px solid #0b132b;
+            border-radius: 50%;
+        }
+
+        .chat-info { flex: 1; min-width: 0; }
+        .chat-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .chat-name { font-weight: 600; font-size: 15px; }
+        .chat-tag {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 8px;
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .chat-preview {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Chat oynasi (Room) */
+        .chat-room {
+            position: absolute;
+            inset: 0;
+            background: #080f20;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.38s var(--spring);
+        }
+
+        .chat-room.active { transform: translateX(0); }
+
+        .room-header {
+            padding: 46px 16px 12px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg {
+            max-width: 78%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+            position: relative;
+            animation: popIn 0.28s var(--spring);
+            user-select: text;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .msg.in {
+            background: rgba(30, 41, 59, 0.9);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg.out {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-sender {
+            font-size: 11px;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 3px;
+        }
+
+        .msg-reaction {
+            display: inline-block;
+            background: rgba(255,255,255,0.12);
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        /* Stikerlar paneli */
+        .sticker-drawer {
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .sticker-drawer.open { display: grid; }
+
+        .sticker-item {
+            font-size: 28px;
+            text-align: center;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 12px;
+            transition: transform 0.15s;
+        }
+
+        .sticker-item:active { transform: scale(1.25); }
+
+        .input-bar {
+            padding: 10px 14px 22px;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-bar input {
+            flex: 1;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            outline: none;
+            color: white;
+            padding: 11px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.08);
+            border: none;
+            color: white;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .send-btn {
+            background: var(--accent);
+            color: #070d19;
+            font-weight: bold;
+        }
+
+        /* Pastki navigatsiya */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 68px;
+            background: rgba(11, 19, 43, 0.92);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .nav-item.active { color: var(--accent); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<canvas id="snow-canvas"></canvas>
+
+<div class="app-shell">
+    <!-- Dynamic Island -->
+    <div class="island-wrapper">
+        <div class="dynamic-island" id="dynamicIsland" onclick="toggleIsland()">
+            <span class="dot-live"></span>
+            <span id="islandText">❄️ BIONIC 20 • 120Hz</span>
+        </div>
+    </div>
+
+    <!-- PIN-kod bilan Qulflash Ekrani -->
+    <div id="lock-screen">
+        <div style="font-size: 36px; margin-bottom: 10px;">🔒</div>
+        <h2 style="font-size: 20px;">ZENOGRAM Qulfi</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Kirish kodi: <b>1234</b></p>
+        <div class="pin-dots" id="pinDots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+        <div class="keypad">
+            <button class="key-btn" onclick="pressKey('1')">1</button>
+            <button class="key-btn" onclick="pressKey('2')">2</button>
+            <button class="key-btn" onclick="pressKey('3')">3</button>
+            <button class="key-btn" onclick="pressKey('4')">4</button>
+            <button class="key-btn" onclick="pressKey('5')">5</button>
+            <button class="key-btn" onclick="pressKey('6')">6</button>
+            <button class="key-btn" onclick="pressKey('7')">7</button>
+            <button class="key-btn" onclick="pressKey('8')">8</button>
+            <button class="key-btn" onclick="pressKey('9')">9</button>
+            <button class="key-btn" onclick="clearPin()" style="font-size: 16px;">Tozalash</button>
+            <button class="key-btn" onclick="pressKey('0')">0</button>
+            <button class="key-btn" onclick="lockApp()" style="font-size: 18px;">❄️</button>
+        </div>
+    </div>
+
+    <!-- Yuqori panel -->
+    <div class="header">
+        <div class="profile-pill" onclick="changeUsername()">
+            <span>👤</span>
+            <span id="displayUsername">Mehmon_803</span>
+            <span>✏️</span>
+        </div>
+        <button class="ai-btn" onclick="openChat('zukko')">✨ Zukko AI</button>
+    </div>
+
+    <div class="title-row">
+        <h1>Zenogram</h1>
+        <span style="font-size: 12px; color: #22c55e; background: rgba(34,197,94,0.15); padding: 4px 10px; border-radius: 12px;">● Jonli tarmoq</span>
+    </div>
+
+    <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="searchInput" placeholder="Chatlarni qidirish..." onkeyup="filterChats()">
+    </div>
+
+    <!-- Chatlar ro'yxati -->
+    <div class="chat-list" id="chatList">
+        <div class="chat-item" onclick="openChat('global')">
+            <div class="avatar" style="background: linear-gradient(135deg, #0284c7, #38bdf8);">❄️<div class="online-badge"></div></div>
+            <div class="chat-info">
+                <div class="chat-top">
+                    <span class="chat-name">Umumiy Qishki Chat</span>
+                    <span class="chat-tag">JONLI</span>
+                </div>
+                <div class="chat-preview">Barcha foydalanuvchilar bilan ochiq muloqot...</div>
+            </div>
+        </div>
+
+        <div class="chat-item" onclick="openChat('uzbekistan')">
+            <div class="avatar" style="background: linear-gradient(135deg, #059669, #10b981);">🌍<div class="online-badge"></div></div>
+            <div class="chat-info">
+                <div class="chat-top">
+                    <span class="chat-name">O'zbekiston Jonli Muloqot</span>
+                    <span class="chat-tag">JONLI</span>
+                </div>
+                <div class="chat-preview">Salom hammaga! Qish muborak bo'lsin ⛄</div>
+            </div>
+        </div>
+
+        <div class="chat-item" onclick="openChat('qorbobo')">
+            <div class="avatar" style="background: linear-gradient(135deg, #dc2626, #f87171);">🎅<div class="online-badge"></div></div>
+            <div class="chat-info">
+                <div class="chat-top">
+                    <span class="chat-name">Qor Bobo</span>
+                    <span class="chat-tag">BOT</span>
+                </div>
+                <div class="chat-preview">Ho-ho-ho! Qishki tilaklaringizni yozing!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat ichki oynasi -->
+    <div class="chat-room" id="chatRoom">
+        <div class="room-header">
+            <button class="back-btn" onclick="closeChat()">‹ Orqaga</button>
+            <div id="roomAvatar" style="font-size: 24px;">❄️</div>
+            <div>
+                <div id="roomTitle" style="font-weight: 700; font-size: 16px;">Chat</div>
+                <div id="roomSub" style="font-size: 12px; color: #38bdf8;">online</div>
+            </div>
+        </div>
+
+        <div class="messages-area" id="messagesArea"></div>
+
+        <!-- Stiker va Emojilar -->
+        <div class="sticker-drawer" id="stickerDrawer">
+            <div class="sticker-item" onclick="sendSticker('❄️')">❄️</div>
+            <div class="sticker-item" onclick="sendSticker('⛄')">⛄</div>
+            <div class="sticker-item" onclick="sendSticker('🎅')">🎅</div>
+            <div class="sticker-item" onclick="sendSticker('🎄')">🎄</div>
+            <div class="sticker-item" onclick="sendSticker('🔥')">🔥</div>
+            <div class="sticker-item" onclick="sendSticker('❤️')">❤️</div>
+            <div class="sticker-item" onclick="sendSticker('🚀')">🚀</div>
+            <div class="sticker-item" onclick="sendSticker('😎')">😎</div>
+            <div class="sticker-item" onclick="sendSticker('🥶')">🥶</div>
+            <div class="sticker-item" onclick="sendSticker('🎁')">🎁</div>
+        </div>
+
+        <div class="input-bar">
+            <button class="icon-btn" onclick="toggleStickers()">😊</button>
+            <input type="text" id="msgInput" placeholder="Xabar yozing..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="icon-btn send-btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <!-- Pastki panel -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="closeChat()">
+            <span style="font-size: 20px;">💬</span>
+            <span>Chatlar</span>
+        </div>
+        <div class="nav-item" onclick="openChat('zukko')">
+            <span style="font-size: 20px;">✨</span>
+            <span>Zukko AI</span>
+        </div>
+        <div class="nav-item" onclick="lockApp()">
+            <span style="font-size: 20px;">🔒</span>
+            <span>Qulflash</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Qor animatsiyasi
+    const canvas = document.getElementById('snow-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    const flakes = Array.from({ length: 45 }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: Math.random() * 2.5 + 1,
+        d: Math.random() * 1 + 0.5
+    }));
+
+    function drawSnow() {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.beginPath();
+        flakes.forEach(f => {
+            ctx.moveTo(f.x, f.y);
+            ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+            f.y += f.d;
+            f.x += Math.sin(f.y * 0.01) * 0.4;
+            if (f.y > height) { f.y = -5; f.x = Math.random() * width; }
+        });
+        ctx.fill();
+        requestAnimationFrame(drawSnow);
+    }
+    drawSnow();
+
+    // 2. PIN-kod tizimi (Standart kod: 1234)
+    let enteredPin = "";
+    const CORRECT_PIN = "1234";
+
+    function pressKey(num) {
+        if (enteredPin.length < 4) {
+            enteredPin += num;
+            updatePinDots();
+            if (enteredPin.length === 4) {
+                setTimeout(() => {
+                    if (enteredPin === CORRECT_PIN) {
+                        document.getElementById('lock-screen').classList.add('unlocked');
+                        notifyIsland("🔓 Xush kelibsiz!");
+                    } else {
+                        alert("Noto'g'ri kod! Standart kod: 1234");
+                    }
+                    enteredPin = "";
+                    updatePinDots();
+                }, 150);
+            }
+        }
+    }
+
+    function clearPin() { enteredPin = ""; updatePinDots(); }
+    function lockApp() {
+        enteredPin = "";
+        updatePinDots();
+        document.getElementById('lock-screen').classList.remove('unlocked');
+    }
+
+    function updatePinDots() {
+        const dots = document.querySelectorAll('.pin-dot');
+        dots.forEach((dot, idx) => {
+            dot.classList.toggle('filled', idx < enteredPin.length);
+        });
+    }
+
+    // 3. Dynamic Island animatsiyasi
+    function toggleIsland() {
+        const el = document.getElementById('dynamicIsland');
+        el.classList.toggle('expanded');
+        document.getElementById('islandText').innerText = el.classList.contains('expanded')
+            ? "⚡ BIONIC 20 ProMotion • Qishki Rejim"
+            : "❄️ BIONIC 20 • 120Hz";
+    }
+
+    function notifyIsland(text) {
+        const el = document.getElementById('dynamicIsland');
+        const txt = document.getElementById('islandText');
+        txt.innerText = text;
+        el.classList.add('expanded');
+        setTimeout(() => {
+            el.classList.remove('expanded');
+            txt.innerText = "❄️ BIONIC 20 • 120Hz";
+        }, 2500);
+    }
+
+    // 4. Foydalanuvchi ismi va Chatlar
+    let username = localStorage.getItem('zeno_user') || "Mehmon_803";
+    document.getElementById('displayUsername').innerText = username;
+
+    function changeUsername() {
+        const newName = prompt("Yangi ismingizni kiriting:", username);
+        if (newName && newName.trim()) {
+            username = newName.trim();
+            localStorage.setItem('zeno_user', username);
+            document.getElementById('displayUsername').innerText = username;
+            notifyIsland("✅ Ism o'zgartirildi: " + username);
+        }
+    }
+
+    const chatsData = {
+        global: {
+            title: "Umumiy Qishki Chat",
+            sub: "128 a'zo • 42 online",
+            avatar: "❄️",
+            messages: [
+                { sender: "Sardor", text: "Salom hammaga! Zenogram juda zo'r chiqibdi 🔥", type: "in", reaction: "❤️ 3" },
+                { sender: "Madina", text: "Qor yog'ish animatsiyasi huddi iPhone'dek silliq ekan ❄️", type: "in", reaction: "❄️ 5" }
+            ]
+        },
+        uzbekistan: {
+            title: "O'zbekiston Jonli Muloqot",
+            sub: "340 a'zo • 95 online",
+            avatar: "🌍",
+            messages: [
+                { sender: "Azizbek", text: "Toshkentda havo sovuq, sizlarda qanday?", type: "in", reaction: "⛄ 2" }
+            ]
+        },
+        qorbobo: {
+            title: "Qor Bobo",
+            sub: "bot",
+            avatar: "🎅",
+            messages: [
+                { sender: "Qor Bobo", text: "Ho-ho-ho! Qishki tilaklaringizni yozing, albatta amalga oshadi!", type: "in", reaction: "" }
+            ]
+        },
+        zukko: {
+            title: "Zukko AI ✨",
+            sub: "Sun'iy intellekt yordamchi",
+            avatar: "🤖",
+            messages: [
+                { sender: "Zukko AI", text: "Assalomu alaykum! Men Zukko AI — sizga qanday yordam bera olaman?", type: "in", reaction: "" }
+            ]
+        }
+    };
+
+    let currentChat = 'global';
+
+    function openChat(chatId) {
+        currentChat = chatId;
+        const data = chatsData[chatId];
+        document.getElementById('roomTitle').innerText = data.title;
+        document.getElementById('roomSub').innerText = data.sub;
+        document.getElementById('roomAvatar').innerText = data.avatar;
+        renderMessages();
+        document.getElementById('chatRoom').classList.add('active');
+    }
+
+    function closeChat() {
+        document.getElementById('chatRoom').classList.remove('active');
+        document.getElementById('stickerDrawer').classList.remove('open');
+    }
+
+    function renderMessages() {
+        const area = document.getElementById('messagesArea');
+        area.innerHTML = "";
+        chatsData[currentChat].messages.forEach((m, index) => {
+            const div = document.createElement('div');
+            div.className = `msg ${m.type}`;
+            div.ondblclick = () => toggleReaction(index);
+            div.innerHTML = `
+                ${m.type === 'in' ? `<div class="msg-sender">${m.sender}</div>` : ''}
+                <div>${m.text}</div>
+                ${m.reaction ? `<div class="msg-reaction" onclick="toggleReaction(${index})">${m.reaction}</div>` : ''}
+            `;
+            area.appendChild(div);
+        });
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function toggleReaction(index) {
+        const msg = chatsData[currentChat].messages[index];
+        msg.reaction = msg.reaction ? "" : "❤️ 1";
+        renderMessages();
+    }
+
+    function toggleStickers() {
+        document.getElementById('stickerDrawer').classList.toggle('open');
+    }
+
+    function sendSticker(emoji) {
+        chatsData[currentChat].messages.push({ sender: username, text: `<span style="font-size:38px;">${emoji}</span>`, type: "out", reaction: "" });
+        renderMessages();
+        toggleStickers();
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        chatsData[currentChat].messages.push({ sender: username, text: text, type: "out", reaction: "" });
+        input.value = "";
+        renderMessages();
+
+        // Zukko AI yoki Qor Bobo javobi
+        if (currentChat === 'zukko' || currentChat === 'qorbobo') {
+            document.getElementById('roomSub').innerText = "yozmoqda...";
+            setTimeout(() => {
+                const reply = currentChat === 'zukko'
+                    ? `Sizning "${text}" haqidagi savolingiz juda qiziq! Zenogram Bionic 20 tizimi doim xizmatingizda ✨`
+                    : `Ho-ho-ho! "${text}" — ajoyib tilak! Yangi yilda barcha orzularingiz ushalsin ❄️🎁`;
+                chatsData[currentChat].messages.push({
+                    sender: currentChat === 'zukko' ? "Zukko AI" : "Qor Bobo",
+                    text: reply,
+                    type: "in",
+                    reaction: ""
+                });
+                document.getElementById('roomSub').innerText = "online";
+                renderMessages();
+                notifyIsland("💬 Yangi xabar keldi!");
+            }, 900);
+        }
+    }
+
+    function filterChats() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.style.display = item.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+        });
+    }
+</script>
+</body>
+</html>
